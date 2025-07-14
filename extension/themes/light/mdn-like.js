@@ -1,2 +1,2 @@
-require('codemirror/theme/mdn-like.css');
+// CodeMirror 6 themes are handled via JavaScript extensions, not CSS imports
 require('./mdn-like/mdn-like.scss');

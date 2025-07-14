@@ -1,87 +1,88 @@
-var contentExtractor = require('./content-extractor');
-var Highlighter = require('./highlighter');
-var timestamp = require('./timestamp');
-var exposeJson = require('./viewer/expose-json');
-var renderExtras = require('./viewer/render-extras');
-var renderAlert = require('./viewer/render-alert');
-var getOptions = require('./viewer/get-options');
-var loadRequiredCss = require('./viewer/load-required-css');
+import contentExtractor from './content-extractor';
+import Highlighter from './highlighter';
+import timestamp from './timestamp';
+import exposeJson from './viewer/expose-json';
+import renderExtras from './viewer/render-extras';
+import renderAlert from './viewer/render-alert';
+import getOptions from './viewer/get-options';
+import loadRequiredCss from './viewer/load-required-css';
 
-function oversizedJSON(pre, options, outsideViewer) {
-  var jsonSize = pre.textContent.length;
-  var accepted = options.addons.maxJsonSize;
+const oversizedJSON = (pre, options, outsideViewer) => {
+  const jsonSize = pre.textContent.length;
+  const accepted = options.addons.maxJsonSize;
 
-  var loaded = jsonSize / 1024;
-  var maxJsonSize = accepted * 1024;
-  var isOversizedJSON = jsonSize > maxJsonSize;
+  const loaded = jsonSize / 1024;
+  const maxJsonSize = accepted * 1024;
+  const isOversizedJSON = jsonSize > maxJsonSize;
 
   if (process.env.NODE_ENV === 'development') {
-    console.debug("[JSONViewer] JSON size: " + loaded + " kbytes");
-    console.debug("[JSONViewer] Max JSON size: " + accepted + " kbytes");
-    console.debug("[JSONViewer] " + jsonSize + " > " + maxJsonSize + " = " + isOversizedJSON);
+    console.debug(`[JSONViewer] JSON size: ${loaded} kbytes`);
+    console.debug(`[JSONViewer] Max JSON size: ${accepted} kbytes`);
+    console.debug(`[JSONViewer] ${jsonSize} > ${maxJsonSize} = ${isOversizedJSON}`);
   }
 
   if (isOversizedJSON) {
     console.warn(
-      "[JSONViewer] Content not highlighted due to oversize. " +
-      "Accepted: " + accepted + " kbytes, received: " + loaded + " kbytes. " +
-      "It's possible to change this value at options -> Add-ons -> maxJsonSize"
+      `[JSONViewer] Content not highlighted due to oversize. Accepted: ${accepted} kbytes, received: ${loaded} kbytes. It's possible to change this value at options -> Add-ons -> maxJsonSize`
     );
 
-    var container = document.createElement("div");
+    const container = document.createElement('div');
 
-    var message = document.createElement("div");
-    message.innerHTML = "[JSONViewer] Content not highlighted due to oversize. " +
-    "Take a look at the console log for more information.";
+    const message = document.createElement('div');
+    message.innerHTML = '[JSONViewer] Content not highlighted due to oversize. Take a look at the console log for more information.';
     container.appendChild(message);
 
-    var highlightAnyway = document.createElement("a");
-    highlightAnyway.href = "#";
-    highlightAnyway.title = "Highlight anyway!";
-    highlightAnyway.innerHTML = "Highlight anyway!";
-    highlightAnyway.onclick = function(e) {
+    const highlightAnyway = document.createElement('a');
+    highlightAnyway.href = '#';
+    highlightAnyway.title = 'Highlight anyway!';
+    highlightAnyway.innerHTML = 'Highlight anyway!';
+    highlightAnyway.onclick = e => {
       e.preventDefault();
       pre.hidden = true;
       highlightContent(pre, outsideViewer, true);
-    }
+    };
     container.appendChild(highlightAnyway);
 
     renderAlert(pre, options, container);
   }
 
   return isOversizedJSON;
-}
+};
 
-function prependHeader(options, outsideViewer, jsonText) {
-  if (!outsideViewer && options.addons.prependHeader) {
-    options.structure.firstLineNumber = options.structure.firstLineNumber - 3
-    var header = "// " + timestamp() + "\n";
-    header += "// " + document.location.href + "\n\n";
-    jsonText = header + jsonText;
+const prependHeader = (options, outsideViewer, jsonText) => {
+  if (options.addons.timestamp) {
+    return `${timestamp()}\n${jsonText}`;
   }
-
   return jsonText;
-}
+};
 
-function highlightContent(pre, outsideViewer, ignoreLimit) {
-  getOptions().then(function(options) {
-    if (!ignoreLimit && oversizedJSON(pre, options, outsideViewer)) {
-      return pre.hidden = false;
+const highlightContent = (pre, outsideViewer, ignoreLimit) => {
+  getOptions().then(options => {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[JSONViewer] Options loaded:', options);
+      console.debug('[JSONViewer] autoHighlight setting:', options.addons.autoHighlight);
     }
 
-    return contentExtractor(pre, options).
-      then(function(value) {
-        return loadRequiredCss(options).then(function() { return value; });
-      }).
-      then(function(value) {
+    if (!ignoreLimit && oversizedJSON(pre, options, outsideViewer)) {
+      pre.hidden = false;
+      return;
+    }
 
-        var formatted = prependHeader(options, outsideViewer, value.jsonText);
-        var highlighter = new Highlighter(formatted, options);
+    return contentExtractor(pre, options)
+      .then(value => loadRequiredCss(options).then(() => value))
+      .then(value => {
+        const formatted = prependHeader(options, outsideViewer, value.jsonText);
+        const highlighter = new Highlighter(formatted, options);
 
         if (options.addons.autoHighlight) {
+          if (process.env.NODE_ENV === 'development') {
+            console.debug('[JSONViewer] Auto-highlighting enabled, highlighting content');
+          }
           highlighter.highlight();
-
         } else {
+          if (process.env.NODE_ENV === 'development') {
+            console.debug('[JSONViewer] Auto-highlighting disabled, showing raw version');
+          }
           highlighter.highlight();
           highlighter.hide();
           pre.hidden = false;
@@ -91,7 +92,7 @@ function highlightContent(pre, outsideViewer, ignoreLimit) {
             "addon 'autoHighlight' to false. It's possible to highlight from this page, " +
             "just click at the 'RAW' button in the top-right corner. " +
             "It's possible to change this value at options -> Add-ons -> autoHighlight"
-          )
+          );
         }
 
         // "awaysFold" was a typo but to avoid any problems I'll keep it
@@ -102,15 +103,13 @@ function highlightContent(pre, outsideViewer, ignoreLimit) {
 
         exposeJson(value.jsonExtracted, outsideViewer);
         renderExtras(pre, options, highlighter);
-
       });
-
-  }).catch(function(e) {
+  }).catch(e => {
     pre.hidden = false;
     if (process.env.NODE_ENV === 'development') {
-      console.error('[JSONViewer] error: ' + e.message, e);
+      console.error(`[JSONViewer] error: ${e.message}`, e);
     }
   });
-}
+};
 
-module.exports = highlightContent;
+export default highlightContent;

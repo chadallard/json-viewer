@@ -1,8 +1,9 @@
-var extractJSON = require('./extract-json');
-var bodyModified = false;
+import extractJSON from './extract-json';
+
+const bodyModified = false;
 
 function allTextNodes(nodes) {
-  return !Object.keys(nodes).some(function(key) {
+  return !Object.keys(nodes).some(function (key) {
     return nodes[key].nodeName !== '#text'
   })
 }
@@ -55,36 +56,35 @@ function restoreNonJSONBody() {
   document.body.removeChild(artificialPre);
 }
 
-function isJSON(jsonStr) {
-  var str = jsonStr;
-  if (!str || str.length === 0) {
-    return false
-  }
+function isJSON(text) {
+  try {
+    const json = extractJSON(text);
+    JSON.parse(json);
+    return true;
 
-  str = str.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@')
-  str = str.replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']')
-  str = str.replace(/(?:^|:|,)(?:\s*\[)+/g, '')
-  return (/^[\],:{}\s]*$/).test(str)
+  } catch (e) {
+    return false;
+  }
 }
 
 function isJSONP(jsonStr) {
   return isJSON(extractJSON(jsonStr));
 }
 
-function checkIfJson(sucessCallback, element) {
-  var pre = element || getPreWithSource();
+function checkIfJson(callback, pre) {
+  const elements = pre ? [pre] : document.getElementsByTagName("pre");
 
-  if (pre !== null &&
-    pre !== undefined &&
-    (isJSON(pre.textContent) || isJSONP(pre.textContent))) {
+  for (let i = 0, len = elements.length; i < len; i++) {
+    const element = elements[i];
+    const textContent = element.textContent;
 
-    sucessCallback(pre);
-  } else if (bodyModified) {
-    restoreNonJSONBody();
+    if (textContent && isJSON(textContent)) {
+      callback(element);
+    }
   }
 }
 
-module.exports = {
+export default {
   checkIfJson: checkIfJson,
   isJSON: isJSON
 };

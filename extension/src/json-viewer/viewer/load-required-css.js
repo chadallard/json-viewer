@@ -1,10 +1,10 @@
-var Promise = require('promise');
-var loadCss = require('../load-css');
-var themeDarkness = require('../theme-darkness');
+import Promise from 'promise';
+import loadCss from '../load-css';
+import themeDarkness from '../theme-darkness';
 
 function loadRequiredCss(options) {
-  var theme = options.theme;
-  var loaders = [];
+  const theme = options.theme;
+  const loaders = [];
   loaders.push(loadCss({
     path: "assets/viewer.css",
     checkClass: "json-viewer-css-check"
@@ -17,8 +17,8 @@ function loadRequiredCss(options) {
     }));
   }
 
-  return Promise.all(loaders).then(function() {
-    var style = document.createElement("style");
+  return Promise.all(loaders).then(function () {
+    const style = document.createElement("style");
     style.rel = "stylesheet";
     style.type = "text/css";
     style.innerHTML = options.style;
@@ -26,4 +26,4 @@ function loadRequiredCss(options) {
   });
 }
 
-module.exports = loadRequiredCss;
+export default loadRequiredCss;

@@ -1,2 +1,2 @@
-require('codemirror/theme/midnight.css');
+// CodeMirror 6 themes are handled via JavaScript extensions, not CSS imports
 require('./midnight/midnight.scss');

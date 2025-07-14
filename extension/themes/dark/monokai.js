@@ -1,2 +1,2 @@
-require('codemirror/theme/monokai.css');
+// CodeMirror 6 themes are handled via JavaScript extensions, not CSS imports
 require('./monokai/monokai.scss');

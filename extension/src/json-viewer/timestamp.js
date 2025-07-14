@@ -1,21 +1,25 @@
-function twoDigits(number) {
-  var str = number + "";
-  if (str.length === 1) {
-    return "0" + str;
-  }
-
-  return str;
+function pad(number) {
+  return number.toString().padStart(2, '0');
 }
 
-function getTimestamp() {
-  var date = new Date();
-  var month = date.getMonth() + 1;
-  var day = date.getDate();
-  var hour = date.getHours();
-  var min = date.getMinutes();
-  var sec = date.getSeconds();
+function timestamp() {
+  const date = new Date();
+  const {
+    getMonth,
+    getDate,
+    getFullYear,
+    getHours,
+    getMinutes,
+    getSeconds
+  } = date;
 
-  return date.getFullYear() + twoDigits(month) + twoDigits(day) + twoDigits(hour) + twoDigits(min) + twoDigits(sec);
+  const month = getMonth() + 1;
+  const day = getDate();
+  const hour = getHours();
+  const min = getMinutes();
+  const sec = getSeconds();
+
+  return `${pad(month)}/${pad(day)}/${getFullYear()} ${pad(hour)}:${pad(min)}:${pad(sec)}`;
 }
 
-module.exports = getTimestamp;
+export default timestamp;

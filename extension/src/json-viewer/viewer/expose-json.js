@@ -5,10 +5,10 @@ function exposeJson(text, outsideViewer) {
     window.json = JSON.parse(text);
 
   } else {
-    var script = document.createElement("script") ;
+    const script = document.createElement("script");
     script.innerHTML = 'window.json = ' + text + ';';
     document.head.appendChild(script);
   }
 }
 
-module.exports = exposeJson;
+export default exposeJson;

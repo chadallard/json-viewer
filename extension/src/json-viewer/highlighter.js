@@ -1,235 +1,263 @@
-var CodeMirror = require('codemirror');
-require('codemirror/addon/fold/foldcode');
-require('codemirror/addon/fold/foldgutter');
-require('codemirror/addon/fold/brace-fold');
-require('codemirror/addon/dialog/dialog');
-require('codemirror/addon/scroll/annotatescrollbar');
-require('codemirror/addon/search/matchesonscrollbar');
-require('codemirror/addon/search/searchcursor');
-require('codemirror/addon/search/search');
-require('codemirror/mode/javascript/javascript');
-var merge = require('./merge');
-var defaults = require('./options/defaults');
-var URL_PATTERN = require('./url-pattern');
-var F_LETTER = 70;
+// CodeMirror 6 migration
+// Remove all CodeMirror imports
+// import { EditorView, basicSetup } from "codemirror";
+// import { EditorState } from "@codemirror/state";
+// import { json } from "@codemirror/lang-json";
+// import { searchKeymap, search, highlightSelectionMatches } from "@codemirror/search";
+// import { foldGutter, foldKeymap, foldCode, unfoldAll as cm6UnfoldAll } from "@codemirror/fold";
+// import { oneDark } from "@codemirror/theme-one-dark";
+// import { ViewPlugin, Decoration, DecorationSet, WidgetType } from "@codemirror/view";
+// import { keymap } from "@codemirror/view";
+// import { findNext, findPrevious, closeSearchPanel } from "@codemirror/search";
+import merge from './merge';
+import defaults from './options/defaults';
+import URL_PATTERN from './url-pattern';
+
+const F_LETTER = 70;
 
 function Highlighter(jsonText, options) {
   this.options = options || {};
   this.text = jsonText;
   this.defaultSearch = false;
-  this.theme = this.options.theme || "default";
-  this.theme = this.theme.replace(/_/, ' ');
+  this.theme = this.options.theme || "vs"; // Monaco default theme
+  this.language = "json";
+}
+
+// ViewPlugin for clickable URLs in string tokens
+function clickableUrlPlugin(options) {
+  return ViewPlugin.fromClass(class {
+    constructor(view) {
+      this.decorations = this.buildDecorations(view);
+    }
+    update(update) {
+      if (update.docChanged || update.viewportChanged)
+        this.decorations = this.buildDecorations(update.view);
+    }
+    buildDecorations(view) {
+      const widgets = [];
+      for (let { from, to } of view.visibleRanges) {
+        let text = view.state.doc.sliceString(from, to);
+        let match;
+        while ((match = URL_PATTERN.exec(text)) !== null) {
+          const url = match[0];
+          const start = from + match.index;
+          const end = start + url.length;
+          widgets.push(Decoration.mark({
+            class: "cm-string-link",
+            attributes: {
+              "data-url": url,
+              style: "text-decoration: underline; color: #2196f3; cursor: pointer;"
+            },
+            inclusive: false
+          }).range(start, end));
+        }
+      }
+      return Decoration.set(widgets, true);
+    }
+  }, {
+    decorations: v => v.decorations,
+    eventHandlers: {
+      click(event, view) {
+        const target = event.target;
+        if (target.classList.contains("cm-string-link")) {
+          const url = target.getAttribute("data-url");
+          window.open(url, "_blank");
+          return true;
+        }
+        return false;
+      }
+    }
+  });
+}
+
+// Custom keymap for search and other editor commands
+function createCustomKeymap(options) {
+  const keymapRules = [];
+
+  // Escape key: clear search and focus editor
+  keymapRules.push({
+    key: "Escape",
+    run: (view) => {
+      closeSearchPanel(view);
+      view.focus();
+      return true;
+    }
+  });
+
+  // Read-only mode key bindings
+  if (options.structure && options.structure.readOnly) {
+    keymapRules.push({
+      key: "Enter",
+      run: (view) => {
+        findNext(view);
+        return true;
+      }
+    });
+    keymapRules.push({
+      key: "Shift-Enter",
+      run: (view) => {
+        findPrevious(view);
+        return true;
+      }
+    });
+    keymapRules.push({
+      key: "Ctrl-V",
+      run: () => true // Prevent paste in read-only mode
+    });
+    keymapRules.push({
+      key: "Cmd-V",
+      run: () => true // Prevent paste in read-only mode
+    });
+  }
+
+  // Search key bindings
+  const nativeSearch = options.addons && (options.addons.alwaysRenderAllContent || options.addons.awaysRenderAllContent);
+  if (!nativeSearch) {
+    keymapRules.push({
+      key: "Ctrl-f",
+      run: (view) => {
+        // Trigger search dialog
+        view.dispatch({ effects: search.reconfigure({ top: true }) });
+        return true;
+      }
+    });
+    keymapRules.push({
+      key: "Cmd-f",
+      run: (view) => {
+        // Trigger search dialog
+        view.dispatch({ effects: search.reconfigure({ top: true }) });
+        return true;
+      }
+    });
+  }
+
+  return keymap.of(keymapRules);
+}
+
+// Theme switching function for CodeMirror 6
+function createThemeExtension(themeName) {
+  // Handle specific popular themes with custom extensions
+  const darkThemes = [
+    'dracula', 'material', 'monokai', 'cobalt', 'ambiance', 'zenburn',
+    'jellybeans', 'okaidia', 'panda-syntax', 'tomorrow', 'mehdi', 'mbo',
+    '3024-night', 'base16-dark', 'dark', 'midnight', 'twilight'
+  ];
+
+  const lightThemes = [
+    'coy', 'funky', 'mdn-like', 'neo', 'solarized-light', 'yeti',
+    'base16-light'
+  ];
+
+  // Check if it's a known dark theme
+  if (darkThemes.includes(themeName)) {
+    return EditorView.theme({
+      "&": { fontSize: "14px" },
+      ".cm-content": { fontFamily: "monospace" },
+      ".cm-line": { padding: "0 4px" },
+      ".cm-gutters": { backgroundColor: "transparent", border: "none" },
+      ".cm-activeLine": { backgroundColor: "transparent" },
+      ".cm-selectionBackground": { backgroundColor: "rgba(255, 255, 255, 0.1)" }
+      // Note: CSS classes for themes are applied separately in the highlight function
+    }, { dark: true });
+  }
+
+  // Check if it's a known light theme
+  if (lightThemes.includes(themeName)) {
+    return EditorView.theme({
+      "&": { fontSize: "14px" },
+      ".cm-content": { fontFamily: "monospace" },
+      ".cm-line": { padding: "0 4px" },
+      ".cm-gutters": { backgroundColor: "transparent", border: "none" },
+      ".cm-activeLine": { backgroundColor: "transparent" },
+      ".cm-selectionBackground": { backgroundColor: "rgba(0, 0, 0, 0.1)" }
+      // Note: CSS classes for themes are applied separately in the highlight function
+    }, { dark: false });
+  }
+
+  // For other themes, use a generic approach
+  if (themeName !== 'default') {
+    return EditorView.theme({
+      "&": { fontSize: "14px" },
+      ".cm-content": { fontFamily: "monospace" },
+      ".cm-line": { padding: "0 4px" },
+      ".cm-gutters": { backgroundColor: "transparent", border: "none" },
+      ".cm-activeLine": { backgroundColor: "transparent" },
+      ".cm-selectionBackground": { backgroundColor: "rgba(0, 0, 0, 0.1)" }
+      // Note: CSS classes for themes are applied separately in the highlight function
+    }, {
+      dark: themeName.includes('dark') || themeName.includes('night') ||
+        themeName.includes('midnight') || themeName.includes('twilight') ||
+        themeName.includes('dracula') || themeName.includes('material') ||
+        themeName.includes('monokai') || themeName.includes('cobalt') ||
+        themeName.includes('ambiance') || themeName.includes('zenburn') ||
+        themeName.includes('jellybeans') || themeName.includes('okaidia') ||
+        themeName.includes('panda-syntax') || themeName.includes('tomorrow') ||
+        themeName.includes('mehdi') || themeName.includes('mbo') ||
+        themeName.includes('3024-night') || themeName.includes('base16-dark')
+    });
+  }
+
+  // Return a light theme or default theme
+  return EditorView.theme({
+    "&": { fontSize: "14px" },
+    ".cm-content": { fontFamily: "monospace" }
+  });
 }
 
 Highlighter.prototype = {
-  highlight: function() {
-    this.editor = CodeMirror(document.body, this.getEditorOptions());
-    if (!this.alwaysRenderAllContent()) this.preventDefaultSearch();
-    if (this.isReadOny()) this.getDOMEditor().className += ' read-only';
-
-    this.bindRenderLine();
-    this.bindMousedown();
-    this.editor.refresh();
+  highlight: function (parentElement) {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug("[JSONViewer] Creating Monaco highlighter with theme:", this.theme);
+    }
+    // Remove any existing Monaco editor instance
+    if (this.editor && this.editor.dispose) {
+      this.editor.dispose();
+    }
+    // Create Monaco Editor
+    this.editor = monaco.editor.create(parentElement || document.body, {
+      value: this.text,
+      language: this.language,
+      theme: this.getMonacoTheme(this.theme),
+      readOnly: this.isReadOnly(),
+      automaticLayout: true,
+      minimap: { enabled: false },
+      fontSize: 14,
+      fontFamily: 'monospace',
+      lineNumbers: this.options.structure && this.options.structure.lineNumbers !== false ? 'on' : 'off',
+      wordWrap: this.options.structure && this.options.structure.lineWrapping ? 'on' : 'off',
+    });
     this.editor.focus();
   },
 
-  hide: function() {
-    this.getDOMEditor().hidden = true;
+  hide: function () {
+    if (this.editor && this.editor.getDomNode()) {
+      this.editor.getDomNode().style.display = 'none';
+    }
     this.defaultSearch = true;
   },
 
-  show: function() {
-    this.getDOMEditor().hidden = false;
+  show: function () {
+    if (this.editor && this.editor.getDomNode()) {
+      this.editor.getDomNode().style.display = 'block';
+    }
     this.defaultSearch = false;
   },
 
-  getDOMEditor: function() {
-    return document.getElementsByClassName('CodeMirror')[0];
+  getDOMEditor: function () {
+    return this.editor ? this.editor.getDomNode() : null;
   },
 
-  fold: function() {
-    var skippedRoot = false;
-    var firstLine = this.editor.firstLine();
-    var lastLine = this.editor.lastLine();
-
-    for (var line = firstLine; line <= lastLine; line++) {
-      if (!skippedRoot) {
-        if (/(\[|\{)/.test(this.editor.getLine(line).trim())) skippedRoot = true;
-
-      } else {
-        this.editor.foldCode({line: line, ch: 0}, null, "fold");
-      }
-    }
+  isReadOnly: function () {
+    return this.options.structure && this.options.structure.readOnly;
   },
 
-  unfoldAll: function() {
-    for (var line = 0; line < this.editor.lineCount(); line++) {
-      this.editor.foldCode({line: line, ch: 0}, null, "unfold");
-    }
-  },
-
-  bindRenderLine: function() {
-    var self = this;
-    this.editor.off("renderLine");
-    this.editor.on("renderLine", function(cm, line, element) {
-      var elementsNode = element.getElementsByClassName("cm-string");
-      if (!elementsNode || elementsNode.length === 0) return;
-
-      var elements = [];
-      for (var i = 0; i < elementsNode.length; i++) {
-        elements.push(elementsNode[i]);
-      }
-
-      var textContent = elements.reduce(function(str, node) {
-        return str += node.textContent;
-      }, "");
-
-      var text = self.removeQuotes(textContent);
-
-      if (text.match(URL_PATTERN) && self.clickableUrls()) {
-        var decodedText = self.decodeText(text);
-        elements.forEach(function(node) {
-          if (self.wrapLinkWithAnchorTag()) {
-            var linkTag = document.createElement("a");
-            linkTag.href = decodedText;
-            linkTag.setAttribute('target', '_blank')
-            linkTag.classList.add("cm-string");
-
-            // reparent the child nodes to preserve the cursor when editing
-            node.childNodes.forEach(function(child) {
-              linkTag.appendChild(child);
-            });
-
-            // block CodeMirror's contextmenu handler
-            linkTag.addEventListener("contextmenu", function(e) {
-              if (e.bubbles) e.cancelBubble = true;
-            });
-
-            node.appendChild(linkTag);
-          } else {
-            node.classList.add("cm-string-link");
-            node.setAttribute("data-url", decodedText);
-          }
-        });
-      }
-    });
-  },
-
-  bindMousedown: function() {
-    var self = this;
-    this.editor.off("mousedown");
-    this.editor.on("mousedown", function(cm, event) {
-      var element = event.target;
-      if (element.classList.contains("cm-string-link")) {
-        var url = element.getAttribute("data-url")
-        var target = "_self";
-        if (self.openLinksInNewWindow()) {
-          target = "_blank";
-        }
-        window.open(url, target);
-      }
-    });
-  },
-
-  removeQuotes: function(text) {
-    return text.replace(/^\"+/, '').replace(/\"+$/, '');
-  },
-
-  includeQuotes: function(text) {
-    return "\"" + text + "\"";
-  },
-
-  decodeText: function(text) {
-    var div = document.createElement("div");
-    div.innerHTML = text;
-    return div.firstChild ? div.firstChild.nodeValue : "";
-  },
-
-  getEditorOptions: function() {
-    var obligatory = {
-      value: this.text,
-      theme: this.theme,
-      readOnly: this.isReadOny() ? true : false,
-      mode: "application/ld+json",
-      indentUnit: 2,
-      tabSize: 2,
-      gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
-      extraKeys: this.getExtraKeysMap()
-    }
-
-    if (this.alwaysRenderAllContent()) {
-      obligatory.viewportMargin = Infinity;
-    }
-
-    var optional = defaults.structure;
-    var configured = this.options.structure;
-
-    return merge({}, optional, configured, obligatory);
-  },
-
-  getExtraKeysMap: function() {
-    var extraKeyMap = {
-      "Esc": function(cm) {
-        CodeMirror.commands.clearSearch(cm);
-        cm.setSelection(cm.getCursor());
-        cm.focus();
-      }
-    }
-
-    if (this.options.structure.readOnly) {
-      extraKeyMap["Enter"] = function(cm) {
-        CodeMirror.commands.findNext(cm);
-      }
-
-      extraKeyMap["Shift-Enter"] = function(cm) {
-        CodeMirror.commands.findPrev(cm);
-      }
-
-      extraKeyMap["Ctrl-V"] = extraKeyMap["Cmd-V"] = function(cm) {};
-    }
-
-    var nativeSearch = this.alwaysRenderAllContent();
-    extraKeyMap["Ctrl-F"] = nativeSearch ? false : this.openSearchDialog;
-    extraKeyMap["Cmd-F"] = nativeSearch ? false : this.openSearchDialog;
-    return extraKeyMap;
-  },
-
-  preventDefaultSearch: function() {
-    document.addEventListener("keydown", function(e) {
-      var metaKey = navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey;
-      if (!this.defaultSearch && e.keyCode === F_LETTER && metaKey) {
-        e.preventDefault();
-      }
-    }.bind(this), false);
-  },
-
-  openSearchDialog: function(cm) {
-    cm.setCursor({line: 0, ch: 0});
-    CodeMirror.commands.find(cm);
-  },
-
-  alwaysRenderAllContent: function() {
-    // "awaysRenderAllContent" was a typo but to avoid any problems
-    // I'll keep it a while
-    return this.options.addons.alwaysRenderAllContent ||
-           this.options.addons.awaysRenderAllContent;
-  },
-
-  clickableUrls: function() {
-    return this.options.addons.clickableUrls;
-  },
-
-  wrapLinkWithAnchorTag: function() {
-    return this.options.addons.wrapLinkWithAnchorTag;
-  },
-
-  openLinksInNewWindow: function() {
-    return this.options.addons.openLinksInNewWindow;
-  },
-
-  isReadOny: function() {
-    return this.options.structure.readOnly;
+  getMonacoTheme: function (themeName) {
+    // Map your theme names to Monaco themes or use 'vs', 'vs-dark', 'hc-black'
+    if (!themeName || themeName === 'default' || themeName === 'light') return 'vs';
+    if (themeName === 'dark' || themeName.includes('dark') || themeName.includes('dracula') || themeName.includes('monokai')) return 'vs-dark';
+    // Add more mappings as needed
+    return 'vs';
   }
-}
+};
 
-module.exports = Highlighter;
+export default Highlighter;

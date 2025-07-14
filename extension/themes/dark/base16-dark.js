@@ -1,2 +1,2 @@
-require('codemirror/theme/base16-dark.css');
+// CodeMirror 6 themes are handled via JavaScript extensions, not CSS imports
 require('./base16-dark/base16-dark.scss');

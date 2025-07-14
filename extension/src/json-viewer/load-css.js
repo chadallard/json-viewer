@@ -1,28 +1,29 @@
-var Promise = require('promise');
-var chrome = require("chrome-framework");
-var MAX_WAIT = 20;
+import Promise from 'promise';
+import chrome from 'chrome-framework';
+
+const MAX_WAIT = 20;
 
 function loadCSS(opts) {
-  var url = chrome.extension.getURL(opts.path);
+  const url = chrome.runtime.getURL(opts.path);
 
-  var link = document.createElement("link");
-  var sheets = document.styleSheets;
+  const link = document.createElement("link");
+  // const sheets = document.styleSheets;
   link.rel = "stylesheet";
   link.href = url;
   if (opts.id) link.id = opts.id;
 
   document.head.appendChild(link);
 
-  var checkElement = document.createElement("div");
+  const checkElement = document.createElement("div");
   checkElement.setAttribute("class", opts.checkClass);
   document.body.appendChild(checkElement);
 
-  var scheduleId = null;
-  var attempts = 0;
+  let scheduleId = null;
+  let attempts = 0;
 
-  return new Promise(function(resolve, reject) {
+  return new Promise((resolve, reject) => {
     function scheduleCheck() {
-      var content = window.
+      const content = window.
         getComputedStyle(checkElement, ":before").
         getPropertyValue("content");
 
@@ -47,4 +48,4 @@ function loadCSS(opts) {
   });
 }
 
-module.exports = loadCSS;
+export default loadCSS;

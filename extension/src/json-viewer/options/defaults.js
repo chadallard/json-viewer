@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   theme: "default",
   addons: {
     prependHeader: true,

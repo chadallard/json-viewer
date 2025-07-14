@@ -1,19 +1,19 @@
-var defaults = require('./options/defaults');
-var merge = require('./merge');
+import defaults from './options/defaults';
+import merge from './merge';
 
-var OLD_NAMESPACE = "options";
-var NAMESPACE = "v2.options";
+const OLD_NAMESPACE = "options";
+const NAMESPACE = "v2.options";
 
-module.exports = {
-  save: function(obj) {
+const Storage = {
+  save(obj) {
     localStorage.setItem(NAMESPACE, JSON.stringify(obj));
   },
 
-  load: function() {
-    var optionsStr = localStorage.getItem(NAMESPACE);
+  load() {
+    let optionsStr = localStorage.getItem(NAMESPACE);
     optionsStr = this.restoreOldOptions(optionsStr);
 
-    options = optionsStr ? JSON.parse(optionsStr) : {};
+    let options = optionsStr ? JSON.parse(optionsStr) : {};
     options.theme = options.theme || defaults.theme;
     options.addons = options.addons ? JSON.parse(options.addons) : {};
     options.addons = merge({}, defaults.addons, options.addons)
@@ -22,20 +22,20 @@ module.exports = {
     return options;
   },
 
-  restoreOldOptions: function(optionsStr) {
-    var oldOptions = localStorage.getItem(OLD_NAMESPACE);
-    var options = null;
+  restoreOldOptions(optionsStr) {
+    const oldOptions = localStorage.getItem(OLD_NAMESPACE);
+    let options = null;
 
     if (optionsStr === null && oldOptions !== null) {
       try {
-        oldOptions = JSON.parse(oldOptions);
-        if(!oldOptions || typeof oldOptions !== "object") oldOptions = {};
+        let parsedOldOptions = JSON.parse(oldOptions);
+        if (!parsedOldOptions || typeof parsedOldOptions !== "object") parsedOldOptions = {};
 
         options = {};
-        options.theme = oldOptions.theme;
+        options.theme = parsedOldOptions.theme;
         options.addons = {
-          prependHeader: JSON.parse(oldOptions.prependHeader || defaults.addons.prependHeader),
-          maxJsonSize: parseInt(oldOptions.maxJsonSize || defaults.addons.maxJsonSize, 10)
+          prependHeader: JSON.parse(parsedOldOptions.prependHeader || defaults.addons.prependHeader),
+          maxJsonSize: parseInt(parsedOldOptions.maxJsonSize || defaults.addons.maxJsonSize, 10)
         }
 
         // Update to at least the new max value
@@ -50,7 +50,7 @@ module.exports = {
 
         optionsStr = JSON.stringify(options);
 
-      } catch(e) {
+      } catch (e) {
         console.error('[JSONViewer] error: ' + e.message, e);
 
       } finally {
@@ -60,4 +60,6 @@ module.exports = {
 
     return optionsStr;
   }
-}
+};
+
+export default Storage;

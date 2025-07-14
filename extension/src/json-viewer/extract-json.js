@@ -1,9 +1,8 @@
-function extractJSON(rawJson) {
+const extractJSON = (rawJson) => {
   return rawJson
-    .replace(/\s*while\((1|true)\)\s*;?/, '')
-    .replace(/\s*for\(;;\)\s*;?/, '')
-    .replace(/^[^{\[].+\(\s*?{/, '{')
+    .replace(/\s*(while\((1|true)\)|for\(;;\))\s*;?/g, '')
+    .replace(/^[^{[].*?\(\s*?{/, '{')
     .replace(/}\s*?\);?\s*$/, '}');
-}
+};
 
-module.exports = extractJSON;
+export default extractJSON;

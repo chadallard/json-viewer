@@ -1,6 +1,6 @@
-var JSONUtils = require('./json-viewer/check-if-json');
-var highlightContent = require('./json-viewer/highlight-content');
-var loadScratchPadEditor = require('./json-viewer/scratch-pad/load-editor');
+import JSONUtils from './json-viewer/check-if-json';
+import highlightContent from './json-viewer/highlight-content';
+import loadScratchPadEditor from './json-viewer/scratch-pad/load-editor';
 
 function onLoad() {
   var pre = document.getElementsByTagName("pre")[0];
@@ -10,23 +10,20 @@ function onLoad() {
   else handleJSONHighlight(pre, query);
 }
 
+function isScratchPad(query) {
+  return query === "scratch-pad";
+}
+
 function handleScratchPad(pre) {
   pre.hidden = true;
   loadScratchPadEditor(pre);
 }
 
 function handleJSONHighlight(pre, query) {
-  var rawJson = query.replace(/^json=/, '');
-  pre.innerText = decodeURIComponent(rawJson);
-
-  JSONUtils.checkIfJson(function(pre) {
-    pre.hidden = true;
-    highlightContent(pre, true);
-  }, pre);
-}
-
-function isScratchPad(query) {
-  return /scratch-page=true/.test(query);
+  if (query) {
+    pre.textContent = decodeURIComponent(query);
+  }
+  highlightContent(pre);
 }
 
 document.addEventListener("DOMContentLoaded", onLoad, false);

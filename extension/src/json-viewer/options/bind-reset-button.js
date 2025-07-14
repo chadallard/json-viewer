@@ -1,10 +1,10 @@
-var sweetAlert = require('sweetalert');
-var defaults = require('./defaults');
-var Storage = require('../storage');
+import sweetAlert from 'sweetalert';
+import defaults from './defaults';
+import Storage from '../storage';
 
 function bindResetButton() {
-  var button = document.getElementById("reset");
-  button.onclick = function(e) {
+  const button = document.getElementById("reset");
+  button.onclick = function (e) {
     e.preventDefault();
 
     sweetAlert({
@@ -15,9 +15,9 @@ function bindResetButton() {
       confirmButtonColor: "#DD6B55",
       confirmButtonText: "Yes, reset!",
       closeOnConfirm: false
-    }, function() {
+    }, function () {
 
-      var options = {};
+      const options = {};
       options.theme = defaults.theme;
       options.addons = JSON.stringify(defaults.addons);
       options.structure = JSON.stringify(defaults.structure);
@@ -30,4 +30,4 @@ function bindResetButton() {
   }
 }
 
-module.exports = bindResetButton;
+export default bindResetButton;

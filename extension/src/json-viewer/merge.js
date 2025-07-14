@@ -1,17 +1,9 @@
-function merge() {
-  var obj = {}, i = 0, il = arguments.length, key;
-  if (il === 0) {
-    return obj;
+function merge(...objects) {
+  if (objects.length === 0) {
+    return {};
   }
 
-  for (; i < il; i++) {
-    for (key in arguments[i]) {
-      if (arguments[i].hasOwnProperty(key)) {
-        obj[key] = arguments[i][key];
-      }
-    }
-  }
-  return obj;
+  return Object.assign({}, ...objects);
 }
 
-module.exports = merge;
+export default merge;

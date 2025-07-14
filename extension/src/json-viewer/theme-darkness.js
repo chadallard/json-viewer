@@ -1,7 +1,10 @@
-var themes = process.env.THEMES;
-module.exports = function(name) {
-  var darkness = "light";
+const themes = process.env.THEMES;
+
+function themeDarkness(name) {
+  let darkness = "light";
   if (themes.dark.indexOf(name) !== -1) darkness = "dark";
 
   return darkness;
 }
+
+export default themeDarkness;
