@@ -6,7 +6,6 @@ const BuildPaths = require("./lib/build-paths");
 const BuildExtension = require("./lib/build-extension-webpack-plugin");
 
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
-const MonacoEditorWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 const manifestData = fs.readJSONSync(path.join(BuildPaths.SRC_ROOT, 'manifest.json'));
 const version = manifestData.version;
@@ -18,8 +17,7 @@ const entries = {
   backend: ["./extension/src/backend.js"],
   omnibox: ["./extension/src/omnibox.js"],
   "omnibox-page": ["./extension/src/omnibox-page.js"],
-  "service-worker": ["./extension/src/service-worker.js"],
-  "monaco-loader": ["./extension/src/monaco-loader.js"]
+  "service-worker": ["./extension/src/service-worker.js"]
 };
 
 const findThemes = (darkness) =>
@@ -87,13 +85,6 @@ const config = {
     })(),
     new MiniCssExtractPlugin({
       filename: "[name].css"
-    }),
-    new MonacoEditorWebpackPlugin({
-      languages: ['json', 'css'],
-      features: ['!gotoSymbol'], // disable features you don't need
-      globalAPI: true, // expose monaco globally for direct use
-      publicPath: 'assets/',
-      filename: '[name].worker.js'
     }),
     new webpack.DefinePlugin({
       "process.env": {

@@ -1,9 +1,5 @@
 import './options-styles';
 
-// Import Monaco to ensure it's available
-import * as monaco from 'monaco-editor';
-window.monaco = monaco;
-
 import sweetAlert from 'sweetalert';
 
 import Storage from './json-viewer/storage';
@@ -13,14 +9,6 @@ import renderStructure from './json-viewer/options/render-structure';
 import renderStyle from './json-viewer/options/render-style';
 import bindSaveButton from './json-viewer/options/bind-save-button';
 import bindResetButton from './json-viewer/options/bind-reset-button';
-
-self.MonacoEnvironment = {
-  getWorkerUrl: function (moduleId, label) {
-    if (label === 'json') return './json.worker.js';
-    if (label === 'css') return './css.worker.js';
-    return './editor.worker.js';
-  }
-};
 
 function isValidJSON(pseudoJSON) {
   try {
@@ -46,8 +34,8 @@ function renderVersion() {
   }
 }
 
-function onLoaded() {
-  const currentOptions = Storage.load();
+async function onLoaded() {
+  const currentOptions = await Storage.load();
 
   renderVersion();
   renderThemeList(currentOptions.theme);

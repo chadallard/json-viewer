@@ -1,9 +1,7 @@
 import jsonFormater from '../jsl-format';
-import loadCss from '../load-css';
-import themeDarkness from '../theme-darkness';
-// Remove CodeMirror imports
-// import { EditorView, basicSetup } from "codemirror";
-// import { json } from "@codemirror/lang-json";
+import themeProvider from '../theme-provider';
+import LightweightHighlighter from '../lightweight-highlighter';
+import Storage from '../storage';
 
 const themeDefault = "default";
 const themesList = process.env.THEMES;
@@ -20,99 +18,105 @@ const themeJSONExample = {
   }
 }
 
-function onThemeChange(input, editor) {
+let previewHighlighter = null;
+
+async function onThemeChange(input) {
   const selectedTheme = input.options[input.selectedIndex].value;
-  // Split '_' to allow themes with variations (e.g: solarized dark; solarized light)
-  const themeOption = selectedTheme.replace(/_/, ' ');
+  console.log('Theme changed to:', selectedTheme);
 
-  const currentLinkTag = document.getElementById('selected-theme');
-  if (currentLinkTag !== null) {
-    document.head.removeChild(currentLinkTag);
-  }
-
-  const themeToLoad = {
-    id: "selected-theme",
-    path: "themes/" + themeDarkness(selectedTheme) + "/" + selectedTheme + ".css",
-    checkClass: "theme-" + selectedTheme + "-css-check"
-  };
+  // Save the theme to storage
+  const options = await Storage.load();
+  options.theme = selectedTheme;
+  Storage.save(options);
 
   if (selectedTheme === "default") {
-    // For default theme, we don't need to load any CSS
-    console.log("Theme changed to default");
+    // For default theme, remove any theme classes
+    if (previewHighlighter && previewHighlighter.editor) {
+      // Remove all cm-s-* classes and set to default
+      const classes = previewHighlighter.editor.className.split(' ');
+      const filteredClasses = classes.filter(cls => !cls.startsWith('cm-s-'));
+      previewHighlighter.editor.className = filteredClasses.join(' ');
+      console.log('Applied default theme, classes:', previewHighlighter.editor.className);
+    }
   } else {
-    loadCss(themeToLoad).then(function () {
-      console.log("Theme loaded:", themeOption);
-      // Apply the theme class to the editor
-      const editorElement = editor.dom;
-      // Remove any existing theme classes
-      editorElement.classList.remove('cm-theme-default');
-      editorElement.classList.remove('cm-theme-coy');
-      editorElement.classList.remove('cm-theme-funky');
-      editorElement.classList.remove('cm-theme-dracula');
-      editorElement.classList.remove('cm-theme-dracula-custom');
-      editorElement.classList.remove('cm-theme-jellybeans');
-      editorElement.classList.remove('cm-theme-material');
-      editorElement.classList.remove('cm-theme-mbo');
-      editorElement.classList.remove('cm-theme-mehdi');
-      editorElement.classList.remove('cm-theme-midnight');
-      editorElement.classList.remove('cm-theme-monokai');
-      editorElement.classList.remove('cm-theme-okaidia');
-      editorElement.classList.remove('cm-theme-panda-syntax');
-      editorElement.classList.remove('cm-theme-solarized-dark');
-      editorElement.classList.remove('cm-theme-tomorrow');
-      editorElement.classList.remove('cm-theme-twilight');
-      editorElement.classList.remove('cm-theme-zenburn');
-      editorElement.classList.remove('cm-theme-3024-night');
-      editorElement.classList.remove('cm-theme-ambiance');
-      editorElement.classList.remove('cm-theme-base16-dark');
-      editorElement.classList.remove('cm-theme-base16-light');
-      editorElement.classList.remove('cm-theme-cobalt');
-      editorElement.classList.remove('cm-theme-dark');
-      editorElement.classList.remove('cm-theme-mdn-like');
-      editorElement.classList.remove('cm-theme-neo');
-      editorElement.classList.remove('cm-theme-solarized-light');
-      editorElement.classList.remove('cm-theme-yeti');
+    // Load and apply the theme
+    console.log('Loading theme:', selectedTheme);
+    themeProvider.loadTheme(selectedTheme).then(() => {
+      console.log("Theme loaded:", selectedTheme);
 
-      // Add the new theme class
-      editorElement.classList.add('cm-theme-' + selectedTheme);
+      // Apply the theme class to the preview editor
+      if (previewHighlighter && previewHighlighter.editor) {
+        // Remove all existing cm-s-* classes
+        const classes = previewHighlighter.editor.className.split(' ');
+        const filteredClasses = classes.filter(cls => !cls.startsWith('cm-s-'));
+
+        // Add the new theme class
+        filteredClasses.push(`cm-s-${selectedTheme}`);
+        previewHighlighter.editor.className = filteredClasses.join(' ');
+
+        console.log("Applied theme class:", `cm-s-${selectedTheme}`);
+        console.log("Final classes:", previewHighlighter.editor.className);
+      }
+    }).catch(error => {
+      console.error('Failed to load theme:', error);
     });
   }
 }
 
 function renderThemeList(value) {
+  console.log('Rendering theme list with value:', value);
   const themesInput = document.getElementById('themes');
   const themesExampleInput = document.getElementById('themes-example');
-  themesExampleInput.innerHTML = jsonFormater(JSON.stringify(themeJSONExample));
+  const formattedExample = jsonFormater(JSON.stringify(themeJSONExample));
+  themesExampleInput.innerHTML = formattedExample;
 
-  // Create Monaco Editor for the theme example
-  const themeEditor = monaco.editor.create(themesExampleInput.parentNode, {
-    value: themesExampleInput.value,
-    language: 'json',
-    theme: 'vs',
-    automaticLayout: true,
-    minimap: { enabled: false },
-    fontSize: 14,
-    fontFamily: 'monospace',
-    lineNumbers: 'on',
-    wordWrap: 'on',
-    readOnly: true
-  });
+  // Create a container for the preview editor
+  const editorContainer = document.createElement('div');
+  editorContainer.style.width = '100%';
+  editorContainer.style.height = '300px';
+  editorContainer.style.border = '1px solid #ccc';
+  editorContainer.style.borderRadius = '3px';
+  editorContainer.style.marginBottom = '20px';
+  editorContainer.style.position = 'relative';
+
+  // Create lightweight highlighter for preview
+  previewHighlighter = new LightweightHighlighter(formattedExample, { theme: value || 'default' });
+
+  // Create the preview editor
+  const previewEditor = document.createElement('pre');
+  previewEditor.className = (value && value !== 'default') ? `cm-s-${value} CodeMirror` : 'CodeMirror';
+  previewEditor.style.cssText = `
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 10px;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    color: inherit;
+  `;
+
+  // Apply syntax highlighting
+  previewEditor.innerHTML = previewHighlighter.syntaxHighlight(formattedExample);
+  previewHighlighter.editor = previewEditor;
+
+  editorContainer.appendChild(previewEditor);
 
   // Hide the textarea
   themesExampleInput.style.display = 'none';
-  // Insert Monaco's DOM after the textarea
-  themesExampleInput.parentNode.insertBefore(themeEditor.getDomNode(), themesExampleInput.nextSibling);
+  // Insert the container after the textarea
+  themesExampleInput.parentNode.insertBefore(editorContainer, themesExampleInput.nextSibling);
 
+  // Set up theme change handler
   themesInput.onchange = function () {
-    const selectedTheme = themesInput.options[themesInput.selectedIndex].value;
-    // Switch Monaco theme
-    if (!selectedTheme || selectedTheme === 'default' || selectedTheme === 'light') {
-      monaco.editor.setTheme('vs');
-    } else if (selectedTheme === 'dark' || selectedTheme.includes('dark') || selectedTheme.includes('dracula') || selectedTheme.includes('monokai')) {
-      monaco.editor.setTheme('vs-dark');
-    } else {
-      monaco.editor.setTheme('vs');
-    }
+    console.log('Theme input changed');
+    onThemeChange(themesInput);
   }
 
   const optionSelected = value;
@@ -120,8 +124,10 @@ function renderThemeList(value) {
   themesInput.appendChild(createThemeGroup("Light", themesList.light, optionSelected));
   themesInput.appendChild(createThemeGroup("Dark", themesList.dark, optionSelected));
 
+  // Load initial theme if not default
   if (optionSelected && optionSelected !== "default") {
-    themesInput.onchange();
+    console.log('Loading initial theme:', optionSelected);
+    themeProvider.loadTheme(optionSelected);
   }
 }
 

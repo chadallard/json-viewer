@@ -1,0 +1,54 @@
+{
+  "name": "JSON Viewer Test",
+  "version": "1.0.0",
+  "description": "A test JSON file for the JSON Viewer extension",
+  "features": [
+    "syntax highlighting",
+    "theme support",
+    "pretty printing",
+    "lightweight rendering"
+  ],
+  "settings": {
+    "autoHighlight": true,
+    "theme": "dracula",
+    "lineNumbers": false,
+    "readOnly": true
+  },
+  "metadata": {
+    "author": "Test User",
+    "created": "2024-01-01",
+    "tags": [
+      "json",
+      "test",
+      "extension"
+    ]
+  },
+  "nested": {
+    "object": {
+      "with": {
+        "deep": {
+          "nesting": "works"
+        }
+      }
+    }
+  },
+  "numbers": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "booleans": [
+    true,
+    false
+  ],
+  "nulls": [
+    null
+  ],
+  "strings": [
+    "hello",
+    "world",
+    "test"
+  ]
+}

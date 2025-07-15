@@ -1,5 +1,5 @@
 import merge from '../merge';
-import Highlighter from '../highlighter';
+import LightweightHighlighter from '../lightweight-highlighter';
 import getOptions from '../viewer/get-options';
 import loadRequiredCss from '../viewer/load-required-css';
 import renderExtras from '../viewer/render-extras';
@@ -14,13 +14,13 @@ function loadEditor(pre) {
       const scratchPadOptions = merge({}, options);
       scratchPadOptions.structure.readOnly = false;
 
-      const highlighter = new Highlighter("", scratchPadOptions);
+      const highlighter = new LightweightHighlighter("", scratchPadOptions);
       highlighter.highlight();
 
       renderExtras(pre, options, highlighter);
       renderFormatButton(function () {
-        const text = highlighter.editor.getValue();
-        highlighter.editor.setValue(jsonFormater(text));
+        const text = highlighter.editor.textContent;
+        highlighter.editor.innerHTML = highlighter.syntaxHighlight(jsonFormater(text));
         if (JSONUtils.isJSON(text)) {
           exposeJson(text, true);
         }

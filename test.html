@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON Viewer Test</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+    }
+
+    .test-info {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .test-info h1 {
+      color: #333;
+      margin-top: 0;
+    }
+
+    .test-info p {
+      color: #666;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="test-info">
+    <h1>JSON Viewer Extension Test</h1>
+    <p>This page contains JSON content that should be automatically formatted and highlighted by the JSON Viewer extension.</p>
+    <p>If the extension is working correctly, you should see:</p>
+    <ul>
+      <li>Pretty-printed JSON with proper indentation</li>
+      <li>Syntax highlighting with colors</li>
+      <li>Themed appearance (based on your extension settings)</li>
+      <li>Interactive features like folding (if enabled)</li>
+    </ul>
+  </div>
+
+  <pre>{"name":"JSON Viewer Test","version":"1.0.0","description":"A test JSON file for the JSON Viewer extension","features":["syntax highlighting","theme support","pretty printing","lightweight rendering"],"settings":{"autoHighlight":true,"theme":"dracula","lineNumbers":false,"readOnly":true},"metadata":{"author":"Test User","created":"2024-01-01","tags":["json","test","extension"]},"nested":{"object":{"with":{"deep":{"nesting":"works"}}}},"numbers":[1,2,3,4,5],"booleans":[true,false],"nulls":[null],"strings":["hello","world","test"]}</pre>
+</body>
+
+</html>

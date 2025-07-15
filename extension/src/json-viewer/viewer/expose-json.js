@@ -1,13 +1,13 @@
 function exposeJson(text, outsideViewer) {
   console.info("[JSONViewer] Your json was stored into 'window.json', enjoy!");
 
-  if (outsideViewer) {
+  try {
+    // Parse the JSON and store it in window.json
     window.json = JSON.parse(text);
-
-  } else {
-    const script = document.createElement("script");
-    script.innerHTML = 'window.json = ' + text + ';';
-    document.head.appendChild(script);
+  } catch (error) {
+    console.error("[JSONViewer] Failed to parse JSON for window.json:", error);
+    // Fallback: store the raw text
+    window.json = text;
   }
 }
 

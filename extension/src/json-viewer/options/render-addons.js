@@ -2,32 +2,32 @@ import jsonFormater from '../jsl-format';
 
 function renderAddons(value) {
   const addonsInput = document.getElementById('addons');
-  addonsInput.innerHTML = jsonFormater(JSON.stringify(value));
+  const formattedValue = jsonFormater(JSON.stringify(value));
 
-  // Create Monaco Editor
-  const editor = monaco.editor.create(addonsInput.parentNode, {
-    value: addonsInput.value,
-    language: 'json',
-    theme: 'vs',
-    automaticLayout: true,
-    minimap: { enabled: false },
-    fontSize: 14,
-    fontFamily: 'monospace',
-    lineNumbers: 'on',
-    wordWrap: 'on',
-  });
+  // Show the textarea and set its value
+  addonsInput.style.display = 'block';
+  addonsInput.value = formattedValue;
+  addonsInput.style.width = '100%';
+  addonsInput.style.height = '250px';
+  addonsInput.style.fontFamily = 'monospace';
+  addonsInput.style.fontSize = '14px';
+  addonsInput.style.border = '1px solid #ccc';
+  addonsInput.style.borderRadius = '3px';
+  addonsInput.style.padding = '10px';
+  addonsInput.style.marginBottom = '20px';
+  addonsInput.style.resize = 'vertical';
 
-  // Sync changes back to textarea
-  editor.onDidChangeModelContent(() => {
-    addonsInput.value = editor.getValue();
-  });
-
-  // Hide the textarea
-  addonsInput.style.display = 'none';
-  // Insert Monaco's DOM after the textarea
-  addonsInput.parentNode.insertBefore(editor.getDomNode(), addonsInput.nextSibling);
-
-  return editor;
+  // Return a simple object that mimics the Monaco editor interface
+  return {
+    getValue: () => addonsInput.value,
+    setValue: (value) => { addonsInput.value = value; },
+    onDidChangeModelContent: (callback) => {
+      addonsInput.addEventListener('input', callback);
+    },
+    dispose: () => {
+      // Clean up if needed
+    }
+  };
 }
 
 export default renderAddons;

@@ -1,5 +1,5 @@
 import contentExtractor from './content-extractor';
-import Highlighter from './highlighter';
+import LightweightHighlighter from './lightweight-highlighter';
 import timestamp from './timestamp';
 import exposeJson from './viewer/expose-json';
 import renderExtras from './viewer/render-extras';
@@ -56,60 +56,59 @@ const prependHeader = (options, outsideViewer, jsonText) => {
   return jsonText;
 };
 
-const highlightContent = (pre, outsideViewer, ignoreLimit) => {
-  getOptions().then(options => {
-    if (process.env.NODE_ENV === 'development') {
-      console.debug('[JSONViewer] Options loaded:', options);
-      console.debug('[JSONViewer] autoHighlight setting:', options.addons.autoHighlight);
-    }
+const highlightContent = async (pre, outsideViewer, ignoreLimit) => {
+  try {
+    const options = await getOptions();
+    console.log('[JSONViewer] Options loaded:', options);
+    console.log('[JSONViewer] Selected theme:', options.theme);
+    console.log('[JSONViewer] autoHighlight setting:', options.addons.autoHighlight);
 
     if (!ignoreLimit && oversizedJSON(pre, options, outsideViewer)) {
       pre.hidden = false;
       return;
     }
 
-    return contentExtractor(pre, options)
-      .then(value => loadRequiredCss(options).then(() => value))
-      .then(value => {
-        const formatted = prependHeader(options, outsideViewer, value.jsonText);
-        const highlighter = new Highlighter(formatted, options);
+    const value = await contentExtractor(pre, options);
+    await loadRequiredCss(options);
 
-        if (options.addons.autoHighlight) {
-          if (process.env.NODE_ENV === 'development') {
-            console.debug('[JSONViewer] Auto-highlighting enabled, highlighting content');
-          }
-          highlighter.highlight();
-        } else {
-          if (process.env.NODE_ENV === 'development') {
-            console.debug('[JSONViewer] Auto-highlighting disabled, showing raw version');
-          }
-          highlighter.highlight();
-          highlighter.hide();
-          pre.hidden = false;
+    const formatted = prependHeader(options, outsideViewer, value.jsonText);
+    const highlighter = new LightweightHighlighter(formatted, options);
 
-          console.warn(
-            "[JSONViewer] You are seeing the raw version because you configured the " +
-            "addon 'autoHighlight' to false. It's possible to highlight from this page, " +
-            "just click at the 'RAW' button in the top-right corner. " +
-            "It's possible to change this value at options -> Add-ons -> autoHighlight"
-          );
-        }
+    if (options.addons.autoHighlight) {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[JSONViewer] Auto-highlighting enabled, highlighting content');
+      }
+      await highlighter.highlight();
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[JSONViewer] Auto-highlighting disabled, showing raw version');
+      }
+      await highlighter.highlight();
+      highlighter.hide();
+      pre.hidden = false;
 
-        // "awaysFold" was a typo but to avoid any problems I'll keep it
-        // a while
-        if (options.addons.alwaysFold || options.addons.awaysFold) {
-          highlighter.fold();
-        }
+      console.warn(
+        "[JSONViewer] You are seeing the raw version because you configured the " +
+        "addon 'autoHighlight' to false. It's possible to highlight from this page, " +
+        "just click at the 'RAW' button in the top-right corner. " +
+        "It's possible to change this value at options -> Add-ons -> autoHighlight"
+      );
+    }
 
-        exposeJson(value.jsonExtracted, outsideViewer);
-        renderExtras(pre, options, highlighter);
-      });
-  }).catch(e => {
+    // "awaysFold" was a typo but to avoid any problems I'll keep it
+    // a while
+    if (options.addons.alwaysFold || options.addons.awaysFold) {
+      highlighter.fold();
+    }
+
+    exposeJson(value.jsonExtracted, outsideViewer);
+    renderExtras(pre, options, highlighter);
+  } catch (e) {
     pre.hidden = false;
     if (process.env.NODE_ENV === 'development') {
       console.error(`[JSONViewer] error: ${e.message}`, e);
     }
-  });
+  }
 };
 
 export default highlightContent;
